@@ -25,6 +25,7 @@ from llm_extractor import LLMExtractor
 from risk_scoring import RiskScoringEngine
 from ocr_processor import OCRProcessor
 from history_tracker import FMEAHistoryTracker
+from voice_input import VoiceInputProcessor
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -314,7 +315,7 @@ def main():
         st.markdown("### 📊 Input Options")
         input_type = st.radio(
             "Select Input Type:",
-            ["Unstructured Text", "Structured File (CSV/Excel)", "Hybrid (Both)", "📷 Scan Document (OCR)"]
+            ["Unstructured Text", "Structured File (CSV/Excel)", "Hybrid (Both)", "📷 Scan Document (OCR)", "🎙️ Voice Input"]
         )
         
         st.markdown("---")
@@ -335,6 +336,18 @@ def main():
         
         # Output format
         output_format = st.selectbox("Export Format:", ["Excel", "CSV"])
+        
+        # Whisper model size (shown when Voice Input selected)
+        if input_type == "🎙️ Voice Input":
+            st.markdown("---")
+            st.markdown("### 🎙️ Voice Settings")
+            whisper_model_size = st.selectbox(
+                "Whisper Model Size:",
+                ["tiny (~39 MB)", "base (~140 MB)", "small (~461 MB)", "medium (~1.5 GB)"],
+                index=1
+            )
+            # Extract just the model name
+            st.session_state['whisper_model_size'] = whisper_model_size.split(" ")[0]
         
         st.markdown("---")
         st.markdown("### 📖 About")
@@ -476,6 +489,57 @@ def main():
                             fmea_df = generator.generate_from_text(texts, is_file=False)
                             st.session_state['fmea_df'] = fmea_df
         
+        elif input_type == "🎙️ Voice Input":
+            st.markdown("**🎙️ Record your failure description:**")
+            st.info("Click the microphone button below, speak your failure description clearly, then click stop.")
+
+            try:
+                from audio_recorder_streamlit import audio_recorder
+                audio_bytes = audio_recorder(
+                    text="Click to record",
+                    recording_color="#e74c3c",
+                    neutral_color="#1f77b4",
+                    pause_threshold=3.0
+                )
+            except ImportError:
+                st.error("Audio recorder component not installed. Run: pip install audio-recorder-streamlit")
+                audio_bytes = None
+
+            if audio_bytes:
+                # Show audio playback
+                st.audio(audio_bytes, format="audio/wav")
+
+                # Transcribe with Whisper
+                whisper_size = st.session_state.get('whisper_model_size', 'base')
+                with st.spinner(f"Transcribing audio with Whisper ({whisper_size} model)..."):
+                    try:
+                        processor = VoiceInputProcessor(model_size=whisper_size)
+                        transcribed_text = processor.transcribe(audio_bytes)
+                    except Exception as e:
+                        st.error(f"Transcription failed: {e}")
+                        transcribed_text = ""
+
+                # Validate transcription
+                validation = processor.validate_transcription(transcribed_text)
+
+                if validation["valid"]:
+                    edited_text = st.text_area(
+                        "Review and correct transcription before generating FMEA:",
+                        value=transcribed_text,
+                        height=150,
+                        key="voice_transcription"
+                    )
+
+                    if st.button("🚀 Generate FMEA from Voice Input", type="primary"):
+                        with st.spinner("Generating FMEA from voice input..."):
+                            generator = initialize_generator(config)
+                            texts = [line.strip() for line in edited_text.split('\n') if line.strip()]
+                            fmea_df = generator.generate_from_text(texts, is_file=False)
+                            st.session_state['fmea_df'] = fmea_df
+                else:
+                    st.error(f"⚠️ {validation['reason']}")
+                    st.warning("Please record again with a clear, longer description.")
+
         elif input_type == "Structured File (CSV/Excel)":
             uploaded_file = st.file_uploader(
                 "Upload structured FMEA file (CSV or Excel)",
@@ -1041,7 +1105,6 @@ def main():
                     
                     # Calculate detailed costs
                     from mitigation_module.dynamic_network import get_route_cost, get_full_route_map
-                    import pandas as pd
                     
                     # Load CSV for accurate costs
                     csv_path = 'Dataset_AI_Supply_Optimization.csv'
@@ -1456,9 +1519,16 @@ def main():
                         "Run": trend_data["run_labels"]
                     }
                     
+                    num_runs = len(trend_data["run_labels"])
                     for mode in trend_data["failure_modes"]:
                         if mode in trend_data["trend_data"]:
-                            trend_df_data[mode] = trend_data["trend_data"][mode]
+                            values = trend_data["trend_data"][mode]
+                            # Pad or trim to match run_labels length
+                            if len(values) < num_runs:
+                                values = values + [0] * (num_runs - len(values))
+                            elif len(values) > num_runs:
+                                values = values[:num_runs]
+                            trend_df_data[mode] = values
                     
                     trend_df = pd.DataFrame(trend_df_data)
                     
