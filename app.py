@@ -249,8 +249,8 @@ def plot_severity_occurrence_heatmap(fmea_df):
                 heatmap_row.append(avg_rpn)
                 hover_row.append(f"Severity: {severity}<br>Occurrence: {occurrence}<br>Count: {count}<br>Avg RPN: {avg_rpn:.1f}")
             else:
-                heatmap_row.append(0)
-                hover_row.append(f"Severity: {severity}<br>Occurrence: {occurrence}<br>Count: 0<br>Avg RPN: 0")
+                heatmap_row.append(None)
+                hover_row.append(f"Severity: {severity}<br>Occurrence: {occurrence}<br>Count: 0<br>Avg RPN: N/A")
         
         heatmap_array.append(heatmap_row)
         hover_text.append(hover_row)
@@ -748,6 +748,7 @@ def main():
             ]
             
             # Apply visual styling to highlight critical risks
+            display_df = filtered_df
             if highlight_critical and not filtered_df.empty:
                 def highlight_critical_row(row):
                     if row['Rpn'] >= 250:
@@ -757,10 +758,9 @@ def main():
                     else:
                         return [''] * len(row)  # No highlight
                 
-                styled_df = filtered_df.style.apply(highlight_critical_row, axis=1)
-                st.dataframe(styled_df, use_container_width=True, height=400)
-            else:
-                st.dataframe(filtered_df, use_container_width=True, height=400)
+                display_df = filtered_df.style.apply(highlight_critical_row, axis=1)
+
+            st.dataframe(display_df, use_container_width=True, height=400)
             
             # Export options
             st.markdown("---")
