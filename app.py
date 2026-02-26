@@ -400,6 +400,7 @@ def main():
                                         texts = [line.strip() for line in extracted_text.split('\n') if line.strip()]
                                         fmea_df = generator.generate_from_text(texts, is_file=False)
                                         st.session_state['fmea_df'] = fmea_df
+                                        st.session_state['fmea_saved'] = False
                                 else:
                                     st.error(extracted_text)
             else:
@@ -415,6 +416,7 @@ def main():
                         texts = [line.strip() for line in text_input.split('\n') if line.strip()]
                         fmea_df = generator.generate_from_text(texts, is_file=False)
                         st.session_state['fmea_df'] = fmea_df
+                        st.session_state['fmea_saved'] = False
 
         elif input_type == "📷 Scan Document (OCR)":
             st.markdown("**Upload an image or PDF for OCR extraction:**")
@@ -475,6 +477,7 @@ def main():
                             texts = [line.strip() for line in edited_text.split('\n') if line.strip()]
                             fmea_df = generator.generate_from_text(texts, is_file=False)
                             st.session_state['fmea_df'] = fmea_df
+                            st.session_state['fmea_saved'] = False
         
         elif input_type == "Structured File (CSV/Excel)":
             uploaded_file = st.file_uploader(
@@ -492,6 +495,7 @@ def main():
                         generator = initialize_generator(config)
                         fmea_df = generator.generate_from_structured(str(temp_path))
                         st.session_state['fmea_df'] = fmea_df
+                        st.session_state['fmea_saved'] = False
                     
                     temp_path.unlink()
         
@@ -538,6 +542,7 @@ def main():
                         text_input=text_data if text_data else None
                     )
                     st.session_state['fmea_df'] = fmea_df
+                    st.session_state['fmea_saved'] = False
                     
                     # Cleanup
                     if structured_path:
@@ -547,10 +552,12 @@ def main():
         if 'fmea_df' in st.session_state:
             st.success("✅ FMEA Generated Successfully!")
             
-            # Auto-save the run
-            tracker = FMEAHistoryTracker("history")
-            run_id = tracker.save_run(st.session_state['fmea_df'], label=f"Run {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-            st.caption(f"💾 Run saved (ID: {run_id})")
+            # Auto-save the run (only once per generation to avoid duplicate saves on rerun)
+            if not st.session_state.get('fmea_saved', False):
+                tracker = FMEAHistoryTracker("history")
+                run_id = tracker.save_run(st.session_state['fmea_df'], label=f"Run {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+                st.caption(f"💾 Run saved (ID: {run_id})")
+                st.session_state['fmea_saved'] = True
             
             fmea_df = st.session_state['fmea_df']
             
@@ -743,6 +750,7 @@ def main():
                             
                             # Store in session state for Analytics tab
                             st.session_state['fmea_df'] = combined_df
+                            st.session_state['fmea_saved'] = False
                             
                             st.success(f"✅ Generated {len(combined_df)} PFMEA record(s)")
                             
