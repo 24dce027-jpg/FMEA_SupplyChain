@@ -1,0 +1,128 @@
+# FMEA Generator Configuration
+
+# Model Settings
+model:
+  name: "mistralai/Mistral-7B-Instruct-v0.2"  # Can switch to llama, gpt-style models
+  max_length: 512
+  temperature: 0.3
+  top_p: 0.9
+  device: "auto"  # auto, cuda, cpu
+  quantization: true  # Use 4-bit quantization to save memory
+
+# Risk Scoring Parameters
+risk_scoring:
+  severity:
+    high_keywords: ["critical", "catastrophic", "severe", "major", "dangerous", "unsafe", "failure", "broken",
+                   "damage", "injury", "death", "hazardous", "risk", "accident", "explosion", "fire",
+                   "leakage", "contamination", "toxic", "malfunction", "inoperative", "destroyed",
+                   "collapse", "rupture", "crack", "fracture", "loss", "inability", "complete failure",
+                   "customer dissatisfaction", "recall", "warranty", "scrap", "rework"]
+    medium_keywords: ["moderate", "significant", "noticeable", "problem", "issue", "defect",
+                     "degradation", "reduced", "impaired", "impacted", "affected", "deviation",
+                     "incorrect", "improper", "inadequate", "insufficient", "difficulty", "difficulties",
+                     "weakened", "wear", "corrosion", "vibration", "noise", "delay", "downtime"]
+    low_keywords: ["minor", "slight", "small", "negligible", "cosmetic", "appearance", "aesthetic",
+                  "inconvenience", "discomfort", "annoying", "unpleasant"]
+    default: 4
+    
+  occurrence:
+    high_keywords: ["always", "frequently", "constantly", "repeated", "often", "many times",
+                   "continuous", "persistent", "regular", "common", "routine", "typical",
+                   "every time", "multiple", "recurring", "usual", "normal occurrence"]
+    medium_keywords: ["sometimes", "occasionally", "intermittent", "periodic", "sporadic",
+                     "random", "unpredictable", "variable", "unstable", "fluctuating",
+                     "potential", "possible", "may occur", "can happen"]
+    low_keywords: ["rarely", "seldom", "once", "first time", "infrequent", "uncommon",
+                  "isolated", "exceptional", "unusual", "unlikely", "remote"]
+    default: 4
+    
+  detection:
+    high_keywords: ["obvious", "immediate", "clear", "apparent", "visible", "easily detected",
+                   "automatic", "alarm", "sensor", "indicator", "warning", "alert", "monitor",
+                   "inspection", "test", "check", "gauge", "measurement", "evident"]
+    medium_keywords: ["detectable", "noticeable", "can be found", "may detect", "inspection required",
+                     "testing needed", "monitoring", "periodic check", "visual inspection"]
+    low_keywords: ["hidden", "undetectable", "not obvious", "difficult to find", "internal",
+                  "concealed", "subtle", "intermittent symptom", "no warning", "silent",
+                  "gradual", "slow deterioration", "no indication", "hard to identify"]
+    default: 6
+
+# Text Processing
+text_processing:
+  min_review_length: 10
+  negative_threshold: 0.3  # Reviews with polarity < this are considered negative
+  max_reviews_per_batch: 100
+  enable_sentiment_filter: true
+
+# Input Validation
+input_validation:
+  required_structured_columns: ["failure_mode", "effect", "cause"]
+  optional_columns: ["component", "process", "existing_controls", "severity", "occurrence", "detection"]
+  
+# Output Settings
+output:
+  default_format: "excel"  # excel or csv
+  output_directory: "output"
+  include_timestamp: true
+  
+# Extraction Prompts
+prompts:
+  failure_extraction: |
+    You are an expert in Failure Mode and Effects Analysis (FMEA). 
+    Analyze the following text and extract failure-related information.
+    
+    Text: {text}
+    
+    Extract and return in JSON format:
+    {{
+      "failure_mode": "What failed or went wrong",
+      "effect": "Impact or consequence of the failure",
+      "cause": "Root cause or reason for failure",
+      "component": "Affected part, system, or process",
+      "existing_controls": "Any mentioned preventive measures or controls"
+    }}
+    
+    If information is not available, use "Not specified" or "Unknown".
+    
+  severity_scoring: |
+    Rate the severity of this failure from 1-10 where:
+    1-3: Minor inconvenience, no safety impact
+    4-6: Moderate impact, some functionality affected
+    7-9: Major impact, significant functionality loss
+    10: Critical/catastrophic failure, safety hazard
+    
+    Failure: {failure_mode}
+    Effect: {effect}
+    
+    Return only the numeric severity score (1-10).
+    
+  occurrence_scoring: |
+    Rate the likelihood of occurrence from 1-10 where:
+    1-3: Rare, unlikely to happen
+    4-6: Moderate frequency
+    7-9: Frequent occurrence
+    10: Almost certain to occur
+    
+    Cause: {cause}
+    Context: {context}
+    
+    Return only the numeric occurrence score (1-10).
+    
+  detection_scoring: |
+    Rate the likelihood of detection from 1-10 where:
+    1-3: Almost certain to detect (obvious)
+    4-6: Moderate chance of detection
+    7-9: Low chance of detection
+    10: Almost impossible to detect
+    
+    Failure Mode: {failure_mode}
+    Existing Controls: {controls}
+    
+    Return only the numeric detection score (1-10).
+
+# Voice Input Settings
+voice_input:
+  enabled: true
+  language: "en"
+  max_duration_seconds: 30
+  model_size: "base"

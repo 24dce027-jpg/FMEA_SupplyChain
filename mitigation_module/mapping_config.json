@@ -1,0 +1,44 @@
+{
+  "description": "Location to Route ID mapping for disruption events - UPDATED for PRIMARY+BACKUP topology",
+  "version": "2.0.0",
+  "mappings": {
+    "locations": {
+      "Boston": [1, 4],
+      "New York": [2, 7],
+      "NYC": [2, 7],
+      "NY": [2, 7],
+      "New York City": [2, 7],
+      "JFK": [2, 7],
+      "Philadelphia": [5, 8],
+      "Philly": [5, 8],
+      "Chicago": [3, 6],
+      "I-95": [1, 2, 5],
+      "Northeast": [1, 2, 5],
+      "Midwest": [3, 6],
+      "East Coast": [1, 2, 4, 5, 7, 8],
+      "Port of Boston": [1, 4],
+      "Port of New York": [2, 7],
+      "Port of Philadelphia": [5, 8]
+    },
+    "weather_regions": {
+      "Northeast Snowstorm": [1, 2, 4, 5, 7],
+      "East Coast Storm": [1, 2, 4, 5, 7, 8],
+      "Midwest Tornado": [3, 6]
+    },
+    "transportation_hubs": {
+      "Logan Airport": [1, 4],
+      "JFK Airport": [2, 7],
+      "O'Hare Airport": [3, 6],
+      "Philadelphia Airport": [5, 8]
+    }
+  },
+  "impact_types": {
+    "flood": {"default_multiplier": 2.5, "severity_range": [7, 10]},
+    "strike": {"default_multiplier": 1.8, "severity_range": [5, 8]},
+    "accident": {"default_multiplier": 1.5, "severity_range": [4, 7]},
+    "weather": {"default_multiplier": 2.0, "severity_range": [6, 9]},
+    "port_closure": {"default_multiplier": 3.0, "severity_range": [8, 10]},
+    "road_closure": {"default_multiplier": 2.2, "severity_range": [6, 8]},
+    "natural_disaster": {"default_multiplier": 3.5, "severity_range": [9, 10]}
+  }
+}
